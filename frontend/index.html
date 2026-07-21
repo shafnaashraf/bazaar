@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bazaar · Mini-Commerce</title>
+  <style>
+    :root {
+      --brand:#0f766e; --brand-dark:#0b5c55; --ink:#0f172a; --muted:#64748b;
+      --line:#e2e8f0; --bg:#f8fafc; --card:#ffffff; --accent:#f59e0b;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+           color:var(--ink); background:var(--bg); line-height:1.5; }
+
+    /* Header */
+    header { background:linear-gradient(135deg,var(--brand),var(--brand-dark));
+             color:#fff; padding:28px 24px 24px; }
+    .header-inner { max-width:1100px; margin:0 auto; }
+    header h1 { font-size:26px; letter-spacing:-0.5px; }
+    header p { opacity:.85; font-size:14px; margin-top:4px; }
+    .search { margin-top:18px; position:relative; max-width:420px; }
+    .search input { width:100%; padding:11px 14px 11px 38px; border:0; border-radius:10px;
+                    font-size:14px; outline:none; box-shadow:0 2px 8px rgba(0,0,0,.12); }
+    .search::before { content:"🔍"; position:absolute; left:12px; top:50%;
+                      transform:translateY(-50%); font-size:14px; opacity:.6; }
+
+    /* Layout */
+    main { max-width:1100px; margin:0 auto; padding:24px; }
+    .toolbar { display:flex; align-items:center; justify-content:space-between;
+               flex-wrap:wrap; gap:12px; margin-bottom:18px; }
+    .chips { display:flex; gap:8px; flex-wrap:wrap; }
+    .chip { padding:7px 14px; border:1px solid var(--line); background:#fff;
+            border-radius:999px; font-size:13px; cursor:pointer; transition:.15s;
+            color:var(--muted); }
+    .chip:hover { border-color:var(--brand); color:var(--brand); }
+    .chip.active { background:var(--brand); border-color:var(--brand); color:#fff; }
+    .count { font-size:13px; color:var(--muted); }
+
+    /* Product grid */
+    .grid { display:grid; gap:18px;
+            grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:14px;
+            overflow:hidden; display:flex; flex-direction:column;
+            transition:transform .18s, box-shadow .18s; }
+    .card:hover { transform:translateY(-4px); box-shadow:0 12px 24px rgba(15,23,42,.10); }
+    .thumb { position:relative; aspect-ratio:4/3; background:#eef2f5; }
+    .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+    .badge { position:absolute; top:10px; left:10px; background:rgba(15,118,110,.92);
+             color:#fff; font-size:11px; font-weight:600; padding:4px 9px; border-radius:999px; }
+    .stock { position:absolute; top:10px; right:10px; font-size:11px; font-weight:600;
+             padding:4px 9px; border-radius:999px; }
+    .stock.in { background:#dcfce7; color:#166534; }
+    .stock.out { background:#fee2e2; color:#991b1b; }
+    .body { padding:14px; display:flex; flex-direction:column; gap:6px; flex:1; }
+    .body h3 { font-size:15px; font-weight:600; }
+    .body .cat { font-size:12px; color:var(--muted); }
+    .price { margin-top:auto; padding-top:8px; font-size:18px; font-weight:700;
+             color:var(--brand); }
+    .price small { font-size:12px; font-weight:500; color:var(--muted); }
+
+    /* States */
+    .state { text-align:center; padding:60px 20px; color:var(--muted); }
+    .spinner { width:34px; height:34px; border:3px solid var(--line);
+               border-top-color:var(--brand); border-radius:50%; margin:0 auto 12px;
+               animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <h1>Bazaar</h1>
+      <p>Fresh picks, delivered fast.</p>
+      <div class="search">
+        <input id="search" type="text" placeholder="Search products..." />
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <div class="chips" id="chips"></div>
+      <div class="count" id="count"></div>
+    </div>
+    <div id="products" class="grid"></div>
+  </main>
+
+<script>
+// --- state ---
+let allProducts = [];
+let activeCategory = "All";
+let searchText = "";
+
+// Tiny fetch helper.
+async function api(path) {
+  const res = await fetch(path);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || JSON.stringify(data));
+  return data;
+}
+
+// Load once, then render everything from memory (fast filtering).
+async function init() {
+  const box = document.getElementById("products");
+  box.innerHTML = '<div class="state"><div class="spinner"></div>Loading products…</div>';
+  try {
+    allProducts = await api("/api/products/");
+  } catch (e) {
+    box.innerHTML = `<div class="state">Couldn't load products: ${e.message}</div>`;
+    return;
+  }
+  renderChips();
+  render();
+}
+
+// Build category filter chips from the products we loaded.
+function renderChips() {
+  const cats = ["All", ...new Set(allProducts.map(p => p.category_name))];
+  const chips = document.getElementById("chips");
+  chips.innerHTML = "";
+  for (const c of cats) {
+    const el = document.createElement("button");
+    el.className = "chip" + (c === activeCategory ? " active" : "");
+    el.textContent = c;
+    el.onclick = () => { activeCategory = c; renderChips(); render(); };
+    chips.appendChild(el);
+  }
+}
+
+// Apply the active category + search filter, then draw the grid.
+function render() {
+  const box = document.getElementById("products");
+  const list = allProducts.filter(p => {
+    const catOk = activeCategory === "All" || p.category_name === activeCategory;
+    const textOk = p.name.toLowerCase().includes(searchText.toLowerCase());
+    return catOk && textOk;
+  });
+
+  document.getElementById("count").textContent =
+    `${list.length} product${list.length === 1 ? "" : "s"}`;
+
+  if (!list.length) {
+    box.innerHTML = '<div class="state">No products match your filter.</div>';
+    return;
+  }
+
+  box.innerHTML = "";
+  for (const p of list) {
+    const img = p.image
+      ? `<img src="${p.image}" alt="${p.name}" onerror="this.src='https://placehold.co/400x300?text=No+Image'">`
+      : `<img src="https://placehold.co/400x300?text=No+Image" alt="No image">`;
+    const stock = p.in_stock
+      ? `<span class="stock in">In stock</span>`
+      : `<span class="stock out">Sold out</span>`;
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="thumb">
+        ${img}
+        <span class="badge">${p.category_name}</span>
+        ${stock}
+      </div>
+      <div class="body">
+        <h3>${p.name}</h3>
+        <div class="cat">${p.description || ""}</div>
+        <div class="price">AED ${p.price} <small>each</small></div>
+      </div>`;
+    box.appendChild(card);
+  }
+}
+
+// Live search.
+document.getElementById("search").addEventListener("input", (e) => {
+  searchText = e.target.value;
+  render();
+});
+
+init();
+</script>
+</body>
+</html>
