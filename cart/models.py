@@ -44,7 +44,7 @@ class CartItem(models.Model):
         return f"{self.quantity} * {self.product.name}"
     
     @property
-    def line_total(self) ->int :
-        '''computes the total price per product '''
+    def line_total(self) -> Decimal :
+        '''computes the total price per product in the cart , example cost of 3 phones = cost of 1 phone * 3'''
         return(self.product.price * self.quantity)
 # Create your models here.

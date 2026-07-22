@@ -7,16 +7,16 @@
   <style>
     :root {
       --brand:#0f766e; --brand-dark:#0b5c55; --ink:#0f172a; --muted:#64748b;
-      --line:#e2e8f0; --bg:#f8fafc; --card:#ffffff; --accent:#f59e0b;
+      --line:#e2e8f0; --bg:#f8fafc; --card:#ffffff;
     }
     * { box-sizing:border-box; margin:0; padding:0; }
     body { font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
            color:var(--ink); background:var(--bg); line-height:1.5; }
 
-    /* Header */
     header { background:linear-gradient(135deg,var(--brand),var(--brand-dark));
              color:#fff; padding:28px 24px 24px; }
-    .header-inner { max-width:1100px; margin:0 auto; }
+    .header-inner { max-width:1200px; margin:0 auto; display:flex;
+                    justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
     header h1 { font-size:26px; letter-spacing:-0.5px; }
     header p { opacity:.85; font-size:14px; margin-top:4px; }
     .search { margin-top:18px; position:relative; max-width:420px; }
@@ -24,22 +24,23 @@
                     font-size:14px; outline:none; box-shadow:0 2px 8px rgba(0,0,0,.12); }
     .search::before { content:"🔍"; position:absolute; left:12px; top:50%;
                       transform:translateY(-50%); font-size:14px; opacity:.6; }
+    .cart-pill { background:rgba(255,255,255,.15); color:#fff; border-radius:999px;
+                 padding:8px 16px; font-size:14px; font-weight:600; white-space:nowrap; }
 
-    /* Layout */
-    main { max-width:1100px; margin:0 auto; padding:24px; }
+    .layout { max-width:1200px; margin:24px auto; padding:0 24px; display:grid;
+              grid-template-columns:1fr 340px; gap:24px; align-items:start; }
+    @media (max-width:860px){ .layout { grid-template-columns:1fr; } }
+
     .toolbar { display:flex; align-items:center; justify-content:space-between;
                flex-wrap:wrap; gap:12px; margin-bottom:18px; }
     .chips { display:flex; gap:8px; flex-wrap:wrap; }
     .chip { padding:7px 14px; border:1px solid var(--line); background:#fff;
-            border-radius:999px; font-size:13px; cursor:pointer; transition:.15s;
-            color:var(--muted); }
+            border-radius:999px; font-size:13px; cursor:pointer; transition:.15s; color:var(--muted); }
     .chip:hover { border-color:var(--brand); color:var(--brand); }
     .chip.active { background:var(--brand); border-color:var(--brand); color:#fff; }
     .count { font-size:13px; color:var(--muted); }
 
-    /* Product grid */
-    .grid { display:grid; gap:18px;
-            grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); }
+    .grid { display:grid; gap:18px; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); }
     .card { background:var(--card); border:1px solid var(--line); border-radius:14px;
             overflow:hidden; display:flex; flex-direction:column;
             transition:transform .18s, box-shadow .18s; }
@@ -50,133 +51,197 @@
              color:#fff; font-size:11px; font-weight:600; padding:4px 9px; border-radius:999px; }
     .stock { position:absolute; top:10px; right:10px; font-size:11px; font-weight:600;
              padding:4px 9px; border-radius:999px; }
-    .stock.in { background:#dcfce7; color:#166534; }
-    .stock.out { background:#fee2e2; color:#991b1b; }
+    .stock.in { background:#dcfce7; color:#166534; } .stock.out { background:#fee2e2; color:#991b1b; }
     .body { padding:14px; display:flex; flex-direction:column; gap:6px; flex:1; }
     .body h3 { font-size:15px; font-weight:600; }
-    .body .cat { font-size:12px; color:var(--muted); }
-    .price { margin-top:auto; padding-top:8px; font-size:18px; font-weight:700;
-             color:var(--brand); }
+    .price { font-size:18px; font-weight:700; color:var(--brand); }
     .price small { font-size:12px; font-weight:500; color:var(--muted); }
+    button.add { margin-top:8px; background:var(--brand); color:#fff; border:0; border-radius:8px;
+                 padding:9px; font-size:13px; font-weight:600; cursor:pointer; transition:.15s; }
+    button.add:hover { background:var(--brand-dark); }
+    button.add:disabled { background:#cbd5e1; cursor:not-allowed; }
 
-    /* States */
+    /* Cart panel */
+    .cart { background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px;
+            position:sticky; top:24px; box-shadow:0 4px 14px rgba(15,23,42,.05); }
+    .cart h2 { font-size:16px; margin-bottom:12px; }
+    .citem { display:flex; align-items:center; gap:8px; padding:10px 0;
+             border-bottom:1px dashed var(--line); font-size:13px; }
+    .citem .nm { flex:1; }
+    .citem .lt { font-weight:600; min-width:70px; text-align:right; }
+    .qty { display:flex; align-items:center; gap:6px; }
+    .qty button { width:24px; height:24px; border:1px solid var(--line); background:#f8fafc;
+                  border-radius:6px; cursor:pointer; font-size:14px; line-height:1; }
+    .rm { background:none; border:0; color:#b91c1c; cursor:pointer; font-size:16px; }
+    .totrow { display:flex; justify-content:space-between; font-weight:700; font-size:16px;
+              margin-top:14px; }
+    .checkout { width:100%; margin-top:14px; background:var(--brand); color:#fff; border:0;
+                border-radius:10px; padding:12px; font-size:15px; font-weight:600; cursor:pointer; }
+    .checkout:disabled { background:#cbd5e1; cursor:not-allowed; }
+    .empty { color:var(--muted); font-size:13px; padding:8px 0; }
     .state { text-align:center; padding:60px 20px; color:var(--muted); }
-    .spinner { width:34px; height:34px; border:3px solid var(--line);
-               border-top-color:var(--brand); border-radius:50%; margin:0 auto 12px;
-               animation:spin .8s linear infinite; }
+    .spinner { width:34px; height:34px; border:3px solid var(--line); border-top-color:var(--brand);
+               border-radius:50%; margin:0 auto 12px; animation:spin .8s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
   </style>
 </head>
 <body>
   <header>
     <div class="header-inner">
-      <h1>Bazaar</h1>
-      <p>Fresh picks, delivered fast.</p>
-      <div class="search">
-        <input id="search" type="text" placeholder="Search products..." />
+      <div>
+        <h1>Bazaar</h1>
+        <p>Fresh picks, delivered fast.</p>
+        <div class="search"><input id="search" type="text" placeholder="Search products..." /></div>
       </div>
+      <div class="cart-pill" id="cart-pill">🛒 0 items</div>
     </div>
   </header>
 
-  <main>
-    <div class="toolbar">
-      <div class="chips" id="chips"></div>
-      <div class="count" id="count"></div>
-    </div>
-    <div id="products" class="grid"></div>
-  </main>
+  <div class="layout">
+    <section>
+      <div class="toolbar">
+        <div class="chips" id="chips"></div>
+        <div class="count" id="count"></div>
+      </div>
+      <div id="products" class="grid"></div>
+    </section>
+
+    <aside>
+      <div class="cart">
+        <h2>Your Cart</h2>
+        <div id="cart-items"></div>
+        <div class="totrow"><span>Subtotal</span><span id="subtotal">AED 0.00</span></div>
+        <button class="checkout" id="checkout-btn">Checkout</button>
+      </div>
+    </aside>
+  </div>
 
 <script>
 // --- state ---
-let allProducts = [];
-let activeCategory = "All";
-let searchText = "";
+let allProducts = [], activeCategory = "All", searchText = "", cartId = null;
 
-// Tiny fetch helper.
-async function api(path) {
-  const res = await fetch(path);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || JSON.stringify(data));
+// fetch helper supporting all methods + JSON
+async function api(path, options = {}) {
+  const res = await fetch(path, { headers:{ "Content-Type":"application/json" }, ...options });
+  const data = res.status === 204 ? null : await res.json();
+  if (!res.ok) throw new Error((data && (data.detail || JSON.stringify(data))) || res.statusText);
   return data;
 }
 
-// Load once, then render everything from memory (fast filtering).
-async function init() {
-  const box = document.getElementById("products");
-  box.innerHTML = '<div class="state"><div class="spinner"></div>Loading products…</div>';
-  try {
-    allProducts = await api("/api/products/");
-  } catch (e) {
-    box.innerHTML = `<div class="state">Couldn't load products: ${e.message}</div>`;
-    return;
+// --- cart bootstrap: reuse a saved cart or create a new one ---
+async function ensureCart() {
+  const saved = localStorage.getItem("bazaar_cart_id");
+  if (saved) {
+    try { renderCart(await api(`/api/carts/${saved}/`)); cartId = saved; return; }
+    catch (_) { localStorage.removeItem("bazaar_cart_id"); }
   }
-  renderChips();
-  render();
+  const cart = await api("/api/carts/", { method:"POST" });
+  cartId = cart.id;
+  localStorage.setItem("bazaar_cart_id", cartId);
+  renderCart(cart);
 }
 
-// Build category filter chips from the products we loaded.
+// --- products ---
+async function loadProducts() {
+  const box = document.getElementById("products");
+  box.innerHTML = '<div class="state"><div class="spinner"></div>Loading…</div>';
+  try { allProducts = await api("/api/products/"); }
+  catch (e) { box.innerHTML = `<div class="state">${e.message}</div>`; return; }
+  renderChips(); renderProducts();
+}
+
 function renderChips() {
   const cats = ["All", ...new Set(allProducts.map(p => p.category_name))];
-  const chips = document.getElementById("chips");
-  chips.innerHTML = "";
+  const chips = document.getElementById("chips"); chips.innerHTML = "";
   for (const c of cats) {
     const el = document.createElement("button");
     el.className = "chip" + (c === activeCategory ? " active" : "");
     el.textContent = c;
-    el.onclick = () => { activeCategory = c; renderChips(); render(); };
+    el.onclick = () => { activeCategory = c; renderChips(); renderProducts(); };
     chips.appendChild(el);
   }
 }
 
-// Apply the active category + search filter, then draw the grid.
-function render() {
+function renderProducts() {
   const box = document.getElementById("products");
-  const list = allProducts.filter(p => {
-    const catOk = activeCategory === "All" || p.category_name === activeCategory;
-    const textOk = p.name.toLowerCase().includes(searchText.toLowerCase());
-    return catOk && textOk;
-  });
-
+  const list = allProducts.filter(p =>
+    (activeCategory === "All" || p.category_name === activeCategory) &&
+    p.name.toLowerCase().includes(searchText.toLowerCase()));
   document.getElementById("count").textContent =
     `${list.length} product${list.length === 1 ? "" : "s"}`;
-
-  if (!list.length) {
-    box.innerHTML = '<div class="state">No products match your filter.</div>';
-    return;
-  }
-
+  if (!list.length) { box.innerHTML = '<div class="state">No products match.</div>'; return; }
   box.innerHTML = "";
   for (const p of list) {
-    const img = p.image
-      ? `<img src="${p.image}" alt="${p.name}" onerror="this.src='https://placehold.co/400x300?text=No+Image'">`
-      : `<img src="https://placehold.co/400x300?text=No+Image" alt="No image">`;
-    const stock = p.in_stock
-      ? `<span class="stock in">In stock</span>`
-      : `<span class="stock out">Sold out</span>`;
+    const img = `<img src="${p.image || 'https://placehold.co/400x300?text=No+Image'}"
+                 alt="${p.name}" onerror="this.src='https://placehold.co/400x300?text=No+Image'">`;
+    const stock = p.in_stock ? `<span class="stock in">In stock</span>`
+                             : `<span class="stock out">Sold out</span>`;
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-      <div class="thumb">
-        ${img}
-        <span class="badge">${p.category_name}</span>
-        ${stock}
-      </div>
+      <div class="thumb">${img}<span class="badge">${p.category_name}</span>${stock}</div>
       <div class="body">
         <h3>${p.name}</h3>
-        <div class="cat">${p.description || ""}</div>
         <div class="price">AED ${p.price} <small>each</small></div>
+        <button class="add" data-id="${p.id}" ${p.in_stock ? "" : "disabled"}>Add to cart</button>
       </div>`;
+    card.querySelector("button.add").onclick = () => addToCart(p.id);
     box.appendChild(card);
   }
 }
 
-// Live search.
+// --- cart actions ---
+async function addToCart(productId) {
+  try {
+    const cart = await api(`/api/carts/${cartId}/items/`,
+      { method:"POST", body: JSON.stringify({ product: productId, quantity: 1 }) });
+    renderCart(cart);
+  } catch (e) { alert(e.message); }
+}
+async function changeQty(productId, quantity) {
+  try {
+    const cart = await api(`/api/carts/${cartId}/items/${productId}/`,
+      { method:"PATCH", body: JSON.stringify({ quantity }) });
+    renderCart(cart);
+  } catch (e) { alert(e.message); }
+}
+async function removeItem(productId) {
+  renderCart(await api(`/api/carts/${cartId}/items/${productId}/`, { method:"DELETE" }));
+}
+
+function renderCart(cart) {
+  const box = document.getElementById("cart-items");
+  box.innerHTML = "";
+  if (!cart.items.length) box.innerHTML = '<div class="empty">Your cart is empty.</div>';
+  for (const it of cart.items) {
+    const row = document.createElement("div");
+    row.className = "citem";
+    row.innerHTML = `
+      <span class="nm">${it.product_name}</span>
+      <span class="qty">
+        <button data-a="dec">−</button><span>${it.quantity}</span><button data-a="inc">+</button>
+      </span>
+      <span class="lt">AED ${it.line_total}</span>
+      <button class="rm" title="Remove">×</button>`;
+    row.querySelector('[data-a="dec"]').onclick = () => changeQty(it.product, it.quantity - 1);
+    row.querySelector('[data-a="inc"]').onclick = () => changeQty(it.product, it.quantity + 1);
+    row.querySelector(".rm").onclick = () => removeItem(it.product);
+    box.appendChild(row);
+  }
+  document.getElementById("subtotal").textContent = `AED ${cart.subtotal ?? "0.00"}`;
+  document.getElementById("cart-pill").textContent = `🛒 ${cart.item_count ?? 0} items`;
+}
+
+// live search + checkout placeholder (we build checkout next step)
 document.getElementById("search").addEventListener("input", (e) => {
-  searchText = e.target.value;
-  render();
+  searchText = e.target.value; renderProducts();
+});
+document.getElementById("checkout-btn").addEventListener("click", () => {
+  alert("Checkout is the next step — we'll wire this up shortly! 🙂");
 });
 
-init();
+// go
+(async function init() { await ensureCart(); await loadProducts(); })();
 </script>
 </body>
 </html>

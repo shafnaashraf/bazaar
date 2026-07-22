@@ -12,6 +12,7 @@ urlpatterns = [
     path("", include("core.urls")),
     path("api/", include("catalog.urls")),
     path("", TemplateView.as_view(template_name = "index.html"), name="home"),
+    path("api/", include("cart.urls")),
 ]
 
 if settings.DEBUG:
