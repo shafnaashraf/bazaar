@@ -75,9 +75,16 @@
     .rm { background:none; border:0; color:#b91c1c; cursor:pointer; font-size:16px; }
     .totrow { display:flex; justify-content:space-between; font-weight:700; font-size:16px;
               margin-top:14px; }
+    .discount-input { width:100%; margin-top:12px; padding:10px; border:1px solid var(--line);
+                      border-radius:8px; font-size:13px; outline:none; }
     .checkout { width:100%; margin-top:14px; background:var(--brand); color:#fff; border:0;
                 border-radius:10px; padding:12px; font-size:15px; font-weight:600; cursor:pointer; }
     .checkout:disabled { background:#cbd5e1; cursor:not-allowed; }
+    .cstatus { font-size:13px; margin-top:8px; min-height:18px; }
+    .cstatus.ok { color:var(--brand); } .cstatus.err { color:#b91c1c; }
+    .receipt { background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px;
+               padding:14px; margin-top:12px; font-size:13px; }
+    .receipt strong { color:var(--brand); }
     .empty { color:var(--muted); font-size:13px; padding:8px 0; }
     .state { text-align:center; padding:60px 20px; color:var(--muted); }
     .spinner { width:34px; height:34px; border:3px solid var(--line); border-top-color:var(--brand);
@@ -111,7 +118,11 @@
         <h2>Your Cart</h2>
         <div id="cart-items"></div>
         <div class="totrow"><span>Subtotal</span><span id="subtotal">AED 0.00</span></div>
+        <input id="discount" class="discount-input" type="text"
+               placeholder="Discount code (try FLAT50)" />
         <button class="checkout" id="checkout-btn">Checkout</button>
+        <div id="status" class="cstatus"></div>
+        <div id="receipt"></div>
       </div>
     </aside>
   </div>
@@ -172,7 +183,7 @@ function renderProducts() {
   if (!list.length) { box.innerHTML = '<div class="state">No products match.</div>'; return; }
   box.innerHTML = "";
   for (const p of list) {
-    const img = `<img src="${p.image || 'https://placehold.co/400x300?text=No+Image'}"
+    const img = `<img src="${p.image|| 'https://placehold.co/400x300?text=No+Image'}"
                  alt="${p.name}" onerror="this.src='https://placehold.co/400x300?text=No+Image'">`;
     const stock = p.in_stock ? `<span class="stock in">In stock</span>`
                              : `<span class="stock out">Sold out</span>`;
@@ -232,13 +243,69 @@ function renderCart(cart) {
   document.getElementById("cart-pill").textContent = `🛒 ${cart.item_count ?? 0} items`;
 }
 
-// live search + checkout placeholder (we build checkout next step)
+// --- checkout ---
+function setStatus(msg, kind) {
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  el.className = "cstatus " + (kind || "");
+}
+
+async function checkout() {
+  const btn = document.getElementById("checkout-btn");
+  const code = document.getElementById("discount").value.trim();
+  btn.disabled = true;
+  setStatus("Placing order…", "ok");
+  try {
+    const body = { cart: cartId };
+    if (code) body.discount_code = code;          // only send if provided
+    const order = await api("/api/checkout/", { method:"POST", body: JSON.stringify(body) });
+    showReceipt(order);
+    pollOrder(order.reference);                   // watch PENDING → CONFIRMED
+    localStorage.removeItem("bazaar_cart_id");    // this cart is now spent
+    await ensureCart();                           // start a fresh cart
+    await loadProducts();                         // stock changed, refresh listing
+    setStatus("Order placed!", "ok");
+    document.getElementById("discount").value = "";
+  } catch (e) {
+    setStatus(e.message, "err");                  // shows out-of-stock / bad-code errors
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Render the order confirmation receipt.
+function showReceipt(order) {
+  const lines = order.items
+    .map(i => `${i.quantity} × ${i.product_name} @ AED ${i.unit_price}`).join("<br>");
+  document.getElementById("receipt").innerHTML = `
+    <div class="receipt">
+      <strong>Order ${order.reference.slice(0,8)}</strong>
+      · <span id="order-status">${order.status_display}</span><br><br>
+      ${lines}<br><br>
+      Subtotal: AED ${order.subtotal}<br>
+      Discount: −AED ${order.discount_amount}<br>
+      <strong>Total: AED ${order.total}</strong>
+    </div>`;
+}
+
+// Poll the order until the Celery worker flips it to CONFIRMED.
+async function pollOrder(reference) {
+  for (let i = 0; i < 10; i++) {
+    await new Promise(r => setTimeout(r, 1500));
+    try {
+      const order = await api(`/api/orders/${reference}/`);
+      const el = document.getElementById("order-status");
+      if (el) el.textContent = order.status_display;
+      if (order.status === "CONFIRMED") return;
+    } catch (_) { return; }
+  }
+}
+
+// live search + checkout
 document.getElementById("search").addEventListener("input", (e) => {
   searchText = e.target.value; renderProducts();
 });
-document.getElementById("checkout-btn").addEventListener("click", () => {
-  alert("Checkout is the next step — we'll wire this up shortly! 🙂");
-});
+document.getElementById("checkout-btn").addEventListener("click", checkout);
 
 // go
 (async function init() { await ensureCart(); await loadProducts(); })();

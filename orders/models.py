@@ -72,7 +72,6 @@ class OrderItem(models.Model):
     # SET_NULL so deleting a product doesn't erase order history.
     product = models.ForeignKey(Product, null=True, on_delete=models.SET_NULL)
 
-    # --- snapshots taken at checkout (never change afterward) ---
     product_name = models.CharField(max_length=200)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)   # price paid per unit
     quantity = models.PositiveIntegerField()
