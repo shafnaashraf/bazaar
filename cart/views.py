@@ -6,6 +6,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from .serializers import CartSerializer, AddItemSerializer, UpdateItemSerializer
 from . import service
+from drf_spectacular.utils import extend_schema
+
 
 class CartCreateView(APIView):
     def post(self, request):
@@ -18,6 +20,7 @@ class CartDetailView(APIView):
         return Response(CartSerializer(service.get_cart(cart_id)).data)
     
 class CartItemsView(APIView):
+    @extend_schema(request=AddItemSerializer, responses=CartSerializer)
     def post(self, request, cart_id):
         cart = service.get_cart(cart_id)
         payload = AddItemSerializer(data = request.data)

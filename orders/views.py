@@ -10,9 +10,12 @@ from cart import service as cart_service
 from . import service
 from .models import Order
 from .serializers import CheckoutSerializer, OrderSerializer
+from drf_spectacular.utils import extend_schema
+
 
 
 class CheckoutView(APIView):
+    @extend_schema(request=CheckoutSerializer, responses=OrderSerializer)
     def post(self, request):
         payload = CheckoutSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
